@@ -1,0 +1,54 @@
+from aiogram import Bot, Dispatcher, types, filters, F
+from bot_code.config_reader import config
+import bot_code.photo_get
+import asyncio
+import pydantic, pydantic_settings
+import random
+
+
+bot = Bot(token=config.bot_token.get_secret_value())  #считываем скрытый АПИ из файла
+dp = Dispatcher()
+animal = ""
+
+@dp.message(filters.Command("start"))  #реакция на команды с /
+@dp.message(F.text.lower() == "start")  #реакция на команды без /
+@dp.message(F.text.lower() == "choose another animal")
+async def cmd_start(message: types.Message):
+    kb = [[types.KeyboardButton(text="Dog"), types.KeyboardButton(text="Cat")],
+          [types.KeyboardButton(text="Fox"), types.KeyboardButton(text="Duck")]]  #список кнопок
+    keyboard = types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
+    await message.answer("Choose an animal!", reply_markup=keyboard)  # ответ с прикрепленной клавиатурой
+
+@dp.message(F.text.lower() == "make me happy!")  #проверка на совпадение текста
+async def make_happy(message: types.Message):
+    ph = bot_code.photo_get.get_pic(animal)
+    answers = ['Good!', 'OK!', 'Great!', 'Fine!', 'Wonderful!', 'Amazing!', 'Fabulous!']
+    answer = answers[random.randint(0, 6)]
+    await message.answer_photo(photo=ph, caption=answer)
+
+# @dp.message(F.text.lower() == "choose another animal")  #проверка на совпадение текста
+# async def make_happy(message: types.Message):
+#     ph = photo_get.get_pic(animal)
+#     answers = ['Good!', 'OK!', 'Great!', 'Fine!', 'Wonderful!', 'Amazing!', 'Fabulous!']
+#     answer = answers[random.randint(0, 6)]
+#     await message.answer_photo(photo=ph, caption=answer)
+
+#@dp.message(F.text.lower() == "dog" or F.text.lower() == "cat" or F.text.lower() == "fox" or F.text.lower() == "duck")  #реакция на команды с /
+@dp.message(F.text) #реакция на команды с /
+async def choose_animal(message: types.Message):
+    global animal
+    animal = message.text.lower()
+    if animal.lower() == 'dog' or animal.lower() == 'cat' or animal.lower() == 'fox' or animal.lower() == 'duck':
+        kb = [[types.KeyboardButton(text="Make me HAPPY!")],
+              [types.KeyboardButton(text="Choose another animal")]]  #список кнопок
+        keyboard = types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
+        await message.answer("Do you want to smile?", reply_markup=keyboard)  # ответ с прикрепленной клавиатурой
+    else:
+        await message.answer("I don't have such animals")  # ответ с прикрепленной клавиатурой
+
+async def main():
+    await dp.start_polling(bot)  #запуск бесконечного бота
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
